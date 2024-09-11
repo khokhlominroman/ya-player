@@ -1,11 +1,10 @@
 from json import load
 from os import getcwd, path, remove as os_rm
 from PyQt5 import uic
-from PyQt5.QtCore import pyqtSignal, QItemSelection, QModelIndex, Qt, QSize, QUrl
+from PyQt5.QtCore import QItemSelection, QModelIndex, QPoint, Qt, QUrl
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QHeaderView, QMainWindow, QFileDialog, QLabel, QMessageBox as Qmb
+from PyQt5.QtWidgets import QHeaderView, QMainWindow, QFileDialog, QLabel, QMessageBox as Qmb, QToolTip
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtMultimediaWidgets import QVideoWidget
 from yandex_music.exceptions import NetworkError
 
 from dlg_button import ButtonDelegate
@@ -23,39 +22,14 @@ class MainWindow(QMainWindow):
         with open('./ui/style.qss', 'r') as fh:
             self.setStyleSheet('\n'.join(fh.readlines()))
 
-        #
+        self.setup_ui()
+
         # Yandex client
-        #
         self.is_logged = False
         self.__yac: YaClient = None
-
-        #
-        # GUI
-        #
-        # self.tvTrackList = QTableView()
-        self.tvTrackList.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        self.tvTrackList.horizontalHeader().setStretchLastSection(True)
-        self.tvTrackList.setColumnWidth(0, 25)
-        self.tvTrackList.setColumnWidth(1, 25)
-        self.delegate_del = ButtonDelegate(self.tvTrackList, 'del')
-        self.delegate_like = ButtonDelegate(self.tvTrackList, 'like')
-        self.tvTrackList.setItemDelegateForColumn(0, self.delegate_del)
-        self.tvTrackList.setItemDelegateForColumn(1, self.delegate_like)
-
         self.currtab_idx = 0
-        mbar = self.menuBar()
-        self.lbUser = QLabel(mbar)
-        mbar.setCornerWidget(self.lbUser, Qt.TopRightCorner)
-        self.lbUser.setAlignment(Qt.AlignRight)
-        self.lbUser.setMinimumWidth(int(self.size().width()/3))
-        self.lbUser.setContentsMargins(1, 2, 4, 1)
 
-        self.lbst = QLabel(self.statusBar)
-        self.statusBar.addWidget(self.lbst)
-
-        #
         # Player
-        #
         self.player = QMediaPlayer(self)
         self.player.error.connect(lambda err: Qmb.critical(self, 'Error', str(err)))
         self.player.durationChanged.connect(self.update_duration)
@@ -68,44 +42,71 @@ class MainWindow(QMainWindow):
         self.qmplLikes = QMediaPlaylist()
         self.player.setPlaylist(self.qmplTracks)
 
-        #
         # Models
-        #
         self.model_playlists = PlaylistsModel()
-        self.model_tracks = TracksModel(self.qmplTracks)
-        self.model_likes = TracksModel(self.qmplLikes)
+        self.model_tracks = TracksModel(self.qmplTracks, 3)
+        self.model_likes = TracksModel(self.qmplLikes, 2)
         self.lvPlaylists.setModel(self.model_playlists)
-        self.tvTrackList.setModel(self.model_tracks)
-        self.lvLikedList.setModel(self.model_likes)
+        self.tvTracks.setModel(self.model_tracks)
+        self.tvLikes.setModel(self.model_likes)
 
-        #
         # Signals
-        #
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
         self.previousButton.pressed.connect(self.qmplTracks.previous)
         self.nextButton.pressed.connect(self.qmplTracks.next)
         self.qmplTracks.currentIndexChanged.connect(self.on_track_selected_qmpl)
         self.qmplLikes.currentIndexChanged.connect(self.on_track_selected_qmpl)
         self.lvPlaylists.selectionModel().selectionChanged.connect(self.on_playlist_selected)
-        self.tvTrackList.selectionModel().selectionChanged.connect(self.on_track_selected)
-        self.lvLikedList.selectionModel().selectionChanged.connect(self.on_track_selected)
-        self.tvTrackList.doubleClicked.connect(self.on_track_double_clicked)
-        self.lvLikedList.doubleClicked.connect(self.on_track_double_clicked)
+        self.tvTracks.selectionModel().selectionChanged.connect(self.on_track_selected)
+        self.tvLikes.selectionModel().selectionChanged.connect(self.on_track_selected)
+        self.tvTracks.doubleClicked.connect(self.on_track_double_clicked)
+        self.tvLikes.doubleClicked.connect(self.on_track_double_clicked)
         self.timeSlider.valueChanged.connect(self.player.setPosition)
+        self.dlg_tracks_del = None
+        self.dlg_tracks_like = None
+        self.dlg_likes_del = None
+        self.dlg_likes_like = None
 
-        self.viewButton.toggled.connect(self.toggle_viewer)
-        self.actUpdateLikes.triggered.connect(self.__update_liked)
+        self.actUpdateLikes.triggered.connect(self.__update_likes)
         self.actLogout.triggered.connect(self.__logout)
 
-        self.setAcceptDrops(True)
-
-        _px = QPixmap(f'./ui/images/image.png')
-        self.lbTrackCover.setPixmap(_px)
-        self.lbLikedCover.setPixmap(_px)
         self.actLogout.setText("Login")
 
         self.show()
         self.__login()
+
+    def setup_ui(self):
+        for tv in (self.tvTracks, self.tvLikes):
+            tv.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+            tv.horizontalHeader().setStretchLastSection(True)
+            tv.setColumnWidth(0, 16)
+
+        self.tvTracks.setColumnWidth(1, 16)
+        self.dlg_tracks_del = ButtonDelegate(self.tvTracks, 'del')
+        self.dlg_tracks_like = ButtonDelegate(self.tvTracks, 'like')
+        self.dlg_likes_del = ButtonDelegate(self.tvLikes, 'del')
+        self.dlg_tracks_del.pressed.connect(self._delete_track)
+        self.dlg_tracks_like.pressed.connect(self._like_track)
+        self.dlg_likes_del.pressed.connect(self._delete_track)
+        self.tvTracks.setItemDelegateForColumn(0, self.dlg_tracks_del)
+        self.tvTracks.setItemDelegateForColumn(1, self.dlg_tracks_like)
+        self.tvLikes.setItemDelegateForColumn(0, self.dlg_likes_del)
+
+        mbar = self.menuBar()
+        self.lbUser = QLabel(mbar)
+        mbar.setCornerWidget(self.lbUser, Qt.TopRightCorner)
+        self.lbUser.setAlignment(Qt.AlignRight)
+        self.lbUser.setMinimumWidth(int(self.size().width()/2))
+        self.lbUser.setContentsMargins(1, 2, 4, 1)
+
+        self.lbst = QLabel(self.status)
+        self.status.addWidget(self.lbst)
+
+        _px = QPixmap(f'./ui/images/image.png')
+        self.lbTrackCover.setPixmap(_px)
+        self.lbLikesCover.setPixmap(_px)
+
+        self.setAcceptDrops(True)
 
     def dragEnterEvent(self, e) -> None:
         if e.mimeData().hasUrls():
@@ -124,16 +125,13 @@ class MainWindow(QMainWindow):
             self.player.play()
 
     def open_file(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Open file", "", "mp3 Audio (*.mp3);mp4 Video (*.mp4);Movie files (*.mov);All files (*.*)")
-
-        if path:
-            self.qmplLikes.addMedia(QMediaContent(QUrl.fromLocalFile(path)))
-
-        self.model.layoutChanged.emit()
+        _path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "MP3 (*.mp3);AAC (*.aac);All files (*.*)")
+        if _path:
+            self.qmplLikes.addMedia(QMediaContent(QUrl.fromLocalFile(_path)))
+            self.model_tracks.layoutChanged.emit()
 
     def __login(self) -> None:
-        _token= None
+        _token = None
         if path.exists('settings.json'):
             with open('settings.json', 'r') as fp:
                 _token = load(fp).get('TOKEN')
@@ -149,19 +147,19 @@ class MainWindow(QMainWindow):
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
 
-        self.is_logged = self.__yac._clt.me is not None
+        self.is_logged = self.__yac.clt.me is not None
         self.actLogout.setText("Выйти из аккаунта")
-        self.lbUser.setText(f'{self.__yac._clt.me.account.full_name} | {self.__yac._clt.me.default_email} ')
+        self.lbUser.setText(f'{self.__yac.clt.me.account.full_name} | {self.__yac.clt.me.default_email} ')
 
         self.__update_playlists()
-        self.__update_liked()
+        self.__update_likes()
 
     def __logout(self) -> None:
         self.qmplLikes.clear()
         if path.exists("settings.json"):
             os_rm("settings.json")
             im = QPixmap(f"./images/image.png")
-            self.lbLikedCover.setPixmap(im)
+            self.lbLikesCover.setPixmap(im)
             self.lbTrackCover.setPixmap(im)
             self.actionLog_Out.setText("Войти в аккаунт")
             self.acc_name.setText("")
@@ -173,20 +171,54 @@ class MainWindow(QMainWindow):
             #     self, "Update Error", "You are not logged in", defaultButton=QMessageBox.Ok)
             self.__login()
 
+    def _like_track(self, row: int):
+        if self.__yac is None:
+            Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
+            return
+
+        try:
+            _tr = self.__yac.playlists[row]
+            if _tr.like():
+                QToolTip.showText(self.tvTracks.mapToGlobal(QPoint(0, 0)), f'Track `{_tr.title}` liked')
+            else:
+                Qmb.warning(self, _APP_TITLE, f'Warning:\ncan\'t set like for track')
+        except NetworkError as e:
+            Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
+
+        self.__update_likes()
+
+    def _delete_track(self, row: int) -> None:
+        if self.__yac is None:
+            Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
+            return
+
+        try:
+            idx = self.lvPlaylists.currentIndex()
+            if not idx.isValid():
+                return
+
+            _pl = self.model_playlists._rows[idx.row()]
+            self.__yac.clt.users_playlists_delete_track(_pl[1], row, row)
+            QToolTip.showText(self.tvTracks.mapToGlobal(QPoint(0, 0)),
+                              f'Track `{self.__yac.playlists[row].title}` removed from `{_pl[0]}`')
+            self.model_playlists.update_data(self.__yac.clt.users_playlists_list())
+        except NetworkError as e:
+            Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
+
     def __update_playlists(self) -> None:
         if self.__yac is None:
             Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
             return
 
         try:
-            self.model_playlists.update_data(self.__yac._clt.users_playlists_list())
+            self.model_playlists.update_data(self.__yac.clt.users_playlists_list())
         except NetworkError as e:
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
 
         self.lbst.setText('Playlists updated')
 
-    def __update_liked(self) -> None:
+    def __update_likes(self) -> None:
         if not self.is_logged:
             Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
             return
@@ -242,12 +274,16 @@ class MainWindow(QMainWindow):
 
         row = curr.indexes()[0].row()
         if self.currtab_idx == 0:
+            view = self.tvTracks
+            model = self.model_tracks
             cover = self.lbTrackCover
             title = self.lbTrackTitle
             track = self.__yac.playlists[row]
         elif self.currtab_idx == 1:
-            cover = self.lbLikedCover
-            title = self.lbLikedTitle
+            view = self.tvLikes
+            model = self.model_likes
+            cover = self.lbLikesCover
+            title = self.lbLikesTitle
             track = self.__yac.likes[row]
         else:
             return
@@ -258,13 +294,13 @@ class MainWindow(QMainWindow):
         album = f'{track.albums[0].title} [{track.albums[0].year}]' if len(track.albums) > 0 else ''
         duration = f'{track.duration_ms//60000}:{track.duration_ms%60000//1000:02d}'
         title.setText(f'<b>{artists}</b><br><br>{track.title} [<b>{duration}</b>]<br><br><b>Альлбом</b><br>{album}')
-        self.tvTrackList.openPersistentEditor(self.model_tracks.index(row, 0))
-        self.tvTrackList.openPersistentEditor(self.model_tracks.index(row, 1))
+        view.openPersistentEditor(model.index(row, 0))
+        view.openPersistentEditor(model.index(row, 1))
 
         if not prev.isEmpty():
             row = prev.indexes()[0].row()
-            self.tvTrackList.closePersistentEditor(self.model_tracks.index(row, 0))
-            self.tvTrackList.closePersistentEditor(self.model_tracks.index(row, 1))
+            view.closePersistentEditor(model.index(row, 0))
+            view.closePersistentEditor(model.index(row, 1))
 
     def on_track_double_clicked(self, idx: QModelIndex) -> None:
         if not idx.isValid():
@@ -272,10 +308,10 @@ class MainWindow(QMainWindow):
 
         if self.currtab_idx == 0:
             qmpl = self.qmplTracks
-            view = self.tvTrackList
+            view = self.tvTracks
         elif self.currtab_idx == 1:
             qmpl = self.qmplLikes
-            view = self.lvLikedList
+            view = self.tvLikes
         else:
             return
 
@@ -289,11 +325,11 @@ class MainWindow(QMainWindow):
 
         if self.currtab_idx == 0:
             track = self.__yac.playlists[idx]
-            view = self.tvTrackList
+            view = self.tvTracks
             model = self.model_tracks
         elif self.currtab_idx == 1:
             track = self.__yac.likes[idx]
-            view = self.lvLikedList
+            view = self.tvLikes
             model = self.model_likes
         else:
             return
@@ -313,8 +349,10 @@ class MainWindow(QMainWindow):
         self.currtab_idx = ix
         if ix == 0:
             qmplist = self.qmplTracks
+            self.__update_playlists()
         elif ix == 1:
             qmplist = self.qmplLikes
+            self.__update_likes()
         else:
             return
 
@@ -323,9 +361,3 @@ class MainWindow(QMainWindow):
         self.nextButton.pressed.disconnect()
         self.previousButton.pressed.connect(qmplist.previous)
         self.nextButton.pressed.connect(qmplist.next)
-
-    def toggle_viewer(self, state):
-        if state:
-            self.viewer.show()
-        else:
-            self.viewer.hide()

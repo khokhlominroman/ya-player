@@ -52,7 +52,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
@@ -165,7 +165,7 @@
          </widget>
         </item>
         <item row="1" column="0" colspan="3">
-         <widget class="QTableView" name="tvTrackList">
+         <widget class="QTableView" name="tvTracks">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -224,10 +224,10 @@
            <bool>false</bool>
           </attribute>
           <attribute name="horizontalHeaderMinimumSectionSize">
-           <number>20</number>
+           <number>16</number>
           </attribute>
           <attribute name="horizontalHeaderDefaultSectionSize">
-           <number>20</number>
+           <number>16</number>
           </attribute>
           <attribute name="horizontalHeaderHighlightSections">
            <bool>false</bool>
@@ -235,8 +235,11 @@
           <attribute name="verticalHeaderVisible">
            <bool>false</bool>
           </attribute>
+          <attribute name="verticalHeaderMinimumSectionSize">
+           <number>25</number>
+          </attribute>
           <attribute name="verticalHeaderDefaultSectionSize">
-           <number>20</number>
+           <number>25</number>
           </attribute>
          </widget>
         </item>
@@ -256,9 +259,24 @@
        <attribute name="title">
         <string>Мне нравится</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,4">
-        <item row="1" column="1">
-         <widget class="QLabel" name="lbLikedTitle">
+       <layout class="QGridLayout" name="gridLayout" rowstretch="1,4" columnstretch="3,1">
+        <property name="leftMargin">
+         <number>4</number>
+        </property>
+        <property name="topMargin">
+         <number>4</number>
+        </property>
+        <property name="rightMargin">
+         <number>4</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>2</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="lbLikesTitle">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -267,7 +285,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>200</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -289,7 +307,7 @@
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLabel" name="lbLikedCover">
+         <widget class="QLabel" name="lbLikesCover">
           <property name="minimumSize">
            <size>
             <width>200</width>
@@ -313,11 +331,56 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0" rowspan="2">
-         <widget class="QListView" name="lvLikedList">
+        <item row="1" column="0" colspan="2">
+         <widget class="QTableView" name="tvLikes">
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
+          <property name="dragEnabled">
+           <bool>true</bool>
+          </property>
+          <property name="dragDropMode">
+           <enum>QAbstractItemView::DragOnly</enum>
+          </property>
+          <property name="defaultDropAction">
+           <enum>Qt::MoveAction</enum>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SingleSelection</enum>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <property name="showGrid">
+           <bool>false</bool>
+          </property>
+          <property name="cornerButtonEnabled">
+           <bool>false</bool>
+          </property>
+          <attribute name="horizontalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="horizontalHeaderMinimumSectionSize">
+           <number>16</number>
+          </attribute>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>16</number>
+          </attribute>
+          <attribute name="horizontalHeaderHighlightSections">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="verticalHeaderMinimumSectionSize">
+           <number>25</number>
+          </attribute>
+          <attribute name="verticalHeaderDefaultSectionSize">
+           <number>25</number>
+          </attribute>
          </widget>
         </item>
        </layout>
@@ -549,7 +612,7 @@
      <x>0</x>
      <y>0</y>
      <width>600</width>
-     <height>18</height>
+     <height>30</height>
     </rect>
    </property>
    <property name="acceptDrops">
@@ -572,7 +635,7 @@
    <addaction name="menuFIle"/>
    <addaction name="menu"/>
   </widget>
-  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QStatusBar" name="status"/>
   <action name="open_file_action">
    <property name="text">
     <string>Open file...</string>
@@ -603,7 +666,7 @@
  <tabstops>
   <tabstop>tabWidget</tabstop>
   <tabstop>lvPlaylists</tabstop>
-  <tabstop>tvTrackList</tabstop>
+  <tabstop>tvTracks</tabstop>
   <tabstop>previousButton</tabstop>
   <tabstop>playButton</tabstop>
   <tabstop>pauseButton</tabstop>
@@ -612,7 +675,6 @@
   <tabstop>viewButton</tabstop>
   <tabstop>volumeSlider</tabstop>
   <tabstop>timeSlider</tabstop>
-  <tabstop>lvLikedList</tabstop>
  </tabstops>
  <resources/>
  <connections/>

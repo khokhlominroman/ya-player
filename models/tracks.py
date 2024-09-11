@@ -9,24 +9,24 @@ class TracksModel(QAbstractTableModel):
     commonFlags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
     buttonFlags = commonFlags | Qt.ItemFlag.ItemIsEditable
 
-    def __init__(self, playlist: QMediaPlaylist, *args, **kwargs):
+    def __init__(self, playlist: QMediaPlaylist, column_count: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.playlist = playlist
+        self.col_cnt = column_count
 
     def rowCount(self, index=None, *args, **kwargs) -> int:
         return self.playlist.mediaCount()
 
-    @lru_cache(100)
+    @lru_cache(10)
     def columnCount(self, *args, **kwargs) -> int:
-        return 3
+        return self.col_cnt
 
     def data(self, index: QModelIndex, role=None):
         if not index.isValid():
             return None
 
-        if role == 0 and index.column() == 2:
+        if role == 0 and index.column() == self.col_cnt-1:
             return self.playlist.media(index.row()).canonicalUrl().fileName().rsplit('.', 1)[0]
 
-    @lru_cache(100)
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
-        return TracksModel.commonFlags if index.column() == 0 else TracksModel.buttonFlags
+        return TracksModel.commonFlags if index.column() == self.col_cnt-1 else TracksModel.buttonFlags
