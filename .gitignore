@@ -1,0 +1,7 @@
+*.mp3
+*.json
+*pycache__/
+.idea/
+.cache/*
+.cache/covers/*
+.cache/tracks/*
