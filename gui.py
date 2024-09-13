@@ -1,8 +1,8 @@
-from json import load
+from json import dump, load
 from os import getcwd, path, remove as os_rm
 from PyQt5 import uic
-from PyQt5.QtCore import QItemSelection, QModelIndex, QPoint, Qt, QUrl
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import QItemSelection, QModelIndex, QPoint, Qt, QUrl, QSize
+from PyQt5.QtGui import QCloseEvent, QPixmap
 from PyQt5.QtWidgets import QHeaderView, QMainWindow, QFileDialog, QLabel, QMessageBox as Qmb, QToolTip
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
 from yandex_music.exceptions import NetworkError
@@ -21,6 +21,15 @@ class MainWindow(QMainWindow):
         uic.loadUi(path.join(getcwd(), 'ui/main.ui'), self)
         with open('./ui/style.qss', 'r') as fh:
             self.setStyleSheet('\n'.join(fh.readlines()))
+
+        with open('settings.json', 'r') as fh:
+            settings = load(fh)
+            try:
+                self.resize(QSize(*settings.get('size', (600, 700))))
+                self.move(QPoint(*settings.get('pos', (0, 0))))
+            except (KeyError, ValueError) as e:
+                Qmb.critical(self, _APP_TITLE, f'Error: can\'t resize window\n{e}')
+                return
 
         self.setup_ui()
 
@@ -72,9 +81,6 @@ class MainWindow(QMainWindow):
 
         self.actLogout.setText("Login")
 
-        self.show()
-        self.__login()
-
     def setup_ui(self):
         for tv in (self.tvTracks, self.tvLikes):
             tv.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
@@ -124,17 +130,28 @@ class MainWindow(QMainWindow):
             self.qmplLikes.setCurrentIndex(i)
             self.player.play()
 
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if self.__yac.clt.token:
+            sz = self.size()
+            pos = self.pos()
+            settings = {'TOKEN': self.__yac.clt.token, 'size': (sz.width(), sz.height()),
+                        'pos': (pos.x(), pos.y())}
+            with open('settings.json', 'w') as fh:
+                dump(settings, fh)
+
+        event.accept()
+
     def open_file(self) -> None:
         _path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "MP3 (*.mp3);AAC (*.aac);All files (*.*)")
         if _path:
             self.qmplLikes.addMedia(QMediaContent(QUrl.fromLocalFile(_path)))
             self.model_tracks.layoutChanged.emit()
 
-    def __login(self) -> None:
+    def login(self) -> None:
         _token = None
         if path.exists('settings.json'):
-            with open('settings.json', 'r') as fp:
-                _token = load(fp).get('TOKEN')
+            with open('settings.json', 'r') as fh:
+                _token = load(fh).get('TOKEN')
 
         if not _token:
             Qmb.critical(self, _APP_TITLE, 'You should get a token.\n'
