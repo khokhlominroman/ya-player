@@ -6,7 +6,7 @@ from yandex_music import Playlist
 class PlaylistsModel(QAbstractListModel):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self._rows: list[tuple[str, str]] = []
+        self._rows: list[tuple[str, str, int]] = []
 
     def data(self, index, role=None):
         if role == Qt.DisplayRole:
@@ -19,6 +19,6 @@ class PlaylistsModel(QAbstractListModel):
         self._rows.clear()
         self.beginResetModel()
         for _pl in data:
-            self._rows.append((_pl.title, _pl.kind))
+            self._rows.append((_pl.title, _pl.kind, _pl.revision))
 
         self.endResetModel()

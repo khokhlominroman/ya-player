@@ -3,9 +3,10 @@ from os import getcwd, path, remove as os_rm
 from PyQt5 import uic
 from PyQt5.QtCore import QItemSelection, QModelIndex, QPoint, Qt, QUrl, QSize
 from PyQt5.QtGui import QCloseEvent, QPixmap
-from PyQt5.QtWidgets import QHeaderView, QMainWindow, QFileDialog, QLabel, QMessageBox as Qmb, QToolTip
+from PyQt5.QtWidgets import QHeaderView, QMainWindow, QDialog, QFileDialog, QLabel, QMessageBox as Qmb, QToolTip
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
 from yandex_music.exceptions import NetworkError
+from yandex_music.track_short import TrackShort
 
 from dlg_button import ButtonDelegate
 from models.playlists import PlaylistsModel
@@ -30,8 +31,6 @@ class MainWindow(QMainWindow):
             except (KeyError, ValueError) as e:
                 Qmb.critical(self, _APP_TITLE, f'Error: can\'t resize window\n{e}')
                 return
-
-        self.setup_ui()
 
         # Yandex client
         self.is_logged = False
@@ -71,32 +70,28 @@ class MainWindow(QMainWindow):
         self.tvTracks.doubleClicked.connect(self.on_track_double_clicked)
         self.tvLikes.doubleClicked.connect(self.on_track_double_clicked)
         self.timeSlider.valueChanged.connect(self.player.setPosition)
-        self.dlg_tracks_del = None
-        self.dlg_tracks_like = None
-        self.dlg_likes_del = None
-        self.dlg_likes_like = None
-
-        self.actUpdateLikes.triggered.connect(self.__update_likes)
-        self.actLogout.triggered.connect(self.__logout)
-
-        self.actLogout.setText("Login")
-
-    def setup_ui(self):
-        for tv in (self.tvTracks, self.tvLikes):
-            tv.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-            tv.horizontalHeader().setStretchLastSection(True)
-            tv.setColumnWidth(0, 16)
-
-        self.tvTracks.setColumnWidth(1, 16)
         self.dlg_tracks_del = ButtonDelegate(self.tvTracks, 'del')
         self.dlg_tracks_like = ButtonDelegate(self.tvTracks, 'like')
         self.dlg_likes_del = ButtonDelegate(self.tvLikes, 'del')
         self.dlg_tracks_del.pressed.connect(self._delete_track)
         self.dlg_tracks_like.pressed.connect(self._like_track)
         self.dlg_likes_del.pressed.connect(self._delete_track)
-        self.tvTracks.setItemDelegateForColumn(0, self.dlg_tracks_del)
-        self.tvTracks.setItemDelegateForColumn(1, self.dlg_tracks_like)
-        self.tvLikes.setItemDelegateForColumn(0, self.dlg_likes_del)
+        self.actUpdateLikes.triggered.connect(self.__update_likes)
+        self.actAbout.triggered.connect(self.on_about)
+        self.actLogout.triggered.connect(self.__logout)
+
+        self.setup_ui()
+        self.actLogout.setText("Login")
+
+    def setup_ui(self) -> None:
+        for tv in (self.tvTracks, self.tvLikes):
+            tv.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            tv.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+
+        self.tvTracks.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.tvTracks.setItemDelegateForColumn(1, self.dlg_tracks_del)
+        self.tvTracks.setItemDelegateForColumn(2, self.dlg_tracks_like)
+        self.tvLikes.setItemDelegateForColumn(1, self.dlg_likes_del)
 
         mbar = self.menuBar()
         self.lbUser = QLabel(mbar)
@@ -206,21 +201,34 @@ class MainWindow(QMainWindow):
 
     def _delete_track(self, row: int) -> None:
         if self.__yac is None:
-            Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
+            Qmb.critical(self, _APP_TITLE, 'Нужно залогиниться с помощью токена', defaultButton=Qmb.Ok)
+            return
+        if Qmb.StandardButton.Yes != Qmb.question(self, _APP_TITLE, 'Удалить трек из списка?'):
             return
 
-        try:
-            idx = self.lvPlaylists.currentIndex()
-            if not idx.isValid():
-                return
+        if self.currtab_idx == 0:
+            _pl = self.model_playlists._rows[self.lvPlaylists.currentIndex().row()]
+            _list = self.__yac.playlists
+            track = self.__yac.playlists[row]
+            try:
+                _updated = self.__yac.clt.users_playlists_delete_track(_pl[1], row, row, _pl[2])
+                _list.clear()
+                for _tr in _updated.tracks:
+                    if isinstance(_tr, TrackShort):
+                        _tr = _tr.track
 
-            _pl = self.model_playlists._rows[idx.row()]
-            self.__yac.clt.users_playlists_delete_track(_pl[1], row, row)
-            QToolTip.showText(self.tvTracks.mapToGlobal(QPoint(0, 0)),
-                              f'Track `{self.__yac.playlists[row].title}` removed from `{_pl[0]}`')
-            self.model_playlists.update_data(self.__yac.clt.users_playlists_list())
-        except NetworkError as e:
-            Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
+                    _list.append(_tr)
+            except NetworkError as e:
+                Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
+                return
+        elif self.currtab_idx == 1:
+            track = self.__yac.likes[row]
+            if self.__yac.clt.users_likes_tracks_remove(track.id):
+                self.__update_likes()
+        else:
+            return
+
+        self.lbst.setText(f'Track `{track.title}` removed')
 
     def __update_playlists(self) -> None:
         if self.__yac is None:
@@ -241,7 +249,7 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            self.__yac.load_list('likes', self.__yac.likes)
+            self.__yac.load_list('likes')
         except NetworkError as e:
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
@@ -260,12 +268,12 @@ class MainWindow(QMainWindow):
 
         model.layoutChanged.emit()
 
-    def update_duration(self, duration) -> None:
+    def update_duration(self, duration: int) -> None:
         self.timeSlider.setMaximum(duration)
         if duration >= 0:
             self.totalTimeLabel.setText(f'{duration//60000}:{duration%60000//1000:02d}')
 
-    def update_position(self, position) -> None:
+    def update_position(self, position: int) -> None:
         if position >= 0:
             self.currentTimeLabel.setText(f'{position//60000}:{position%60000//1000:02d}')
 
@@ -277,7 +285,7 @@ class MainWindow(QMainWindow):
     def on_playlist_selected(self, idx: QModelIndex, _) -> None:
         _pl = self.model_playlists._rows[idx.indexes()[0].row()]
         try:
-            self.__yac.load_list(_pl[0], self.__yac.playlists, _pl[1])
+            self.__yac.load_list(_pl[0], _pl[1])
         except NetworkError as e:
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
@@ -288,6 +296,8 @@ class MainWindow(QMainWindow):
     def on_track_selected(self, curr: QItemSelection, prev: QItemSelection) -> None:
         if curr.isEmpty():
             return
+
+        self.lbst.setText('')
 
         row = curr.indexes()[0].row()
         if self.currtab_idx == 0:
@@ -311,13 +321,15 @@ class MainWindow(QMainWindow):
         album = f'{track.albums[0].title} [{track.albums[0].year}]' if len(track.albums) > 0 else ''
         duration = f'{track.duration_ms//60000}:{track.duration_ms%60000//1000:02d}'
         title.setText(f'<b>{artists}</b><br><br>{track.title} [<b>{duration}</b>]<br><br><b>Альлбом</b><br>{album}')
-        view.openPersistentEditor(model.index(row, 0))
         view.openPersistentEditor(model.index(row, 1))
+        if model.col_cnt == 3:
+            view.openPersistentEditor(model.index(row, 2))
 
         if not prev.isEmpty():
             row = prev.indexes()[0].row()
-            view.closePersistentEditor(model.index(row, 0))
             view.closePersistentEditor(model.index(row, 1))
+            if model.col_cnt == 3:
+                view.closePersistentEditor(model.index(row, 2))
 
     def on_track_double_clicked(self, idx: QModelIndex) -> None:
         if not idx.isValid():
@@ -378,3 +390,8 @@ class MainWindow(QMainWindow):
         self.nextButton.pressed.disconnect()
         self.previousButton.pressed.connect(qmplist.previous)
         self.nextButton.pressed.connect(qmplist.next)
+
+    def on_about(self):
+        dlg = QDialog(self, Qt.WindowType.Dialog)
+        uic.loadUi(path.join(getcwd(), 'ui/about.ui'), dlg)
+        dlg.exec_()

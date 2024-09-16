@@ -25,8 +25,8 @@ class TracksModel(QAbstractTableModel):
         if not index.isValid():
             return None
 
-        if role == 0 and index.column() == self.col_cnt-1:
+        if role == 0 and index.column() == 0:
             return self.playlist.media(index.row()).canonicalUrl().fileName().rsplit('.', 1)[0]
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
-        return TracksModel.commonFlags if index.column() == self.col_cnt-1 else TracksModel.buttonFlags
+        return TracksModel.commonFlags if index.column() == 0 else TracksModel.buttonFlags

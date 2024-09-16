@@ -43,18 +43,23 @@ class YaClient:
 
         track.download_og_image(_fname)
 
-    def load_list(self, list_name: str, yalist: list[Track], kind: int | str=None):
-        yalist.clear()
-        _tracks = self.clt.users_likes_tracks().fetch_tracks() if list_name == 'likes' else \
-            self.clt.users_playlists(kind).tracks
+    def load_list(self, list_name: str, kind: int | str=None):
+        if list_name == 'likes':
+            _list = self.likes
+            _tracks = self.clt.users_likes_tracks().fetch_tracks()
+        else:
+            _list = self.playlists
+            _tracks = self.clt.users_playlists(kind).tracks
+
+        _list.clear()
         for _tr in _tracks:
             if isinstance(_tr, TrackShort):
                 _tr = _tr.track
 
-            yalist.append(_tr)
+            _list.append(_tr)
 
         with open(f'{YaClient.CACHE_DIR}/tracks_{list_name.replace(" ", "_")}.json', 'w') as fh:
-            dump([f'{_t.artists_name()} - {_t.title}' for _t in yalist], fh)
+            dump([f'{_t.artists_name()} - {_t.title}' for _t in _list], fh)
 
     def like_track(self, idx: int) -> bool:
         return self.clt.users_likes_tracks_add(self.playlists[idx].id)

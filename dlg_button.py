@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import QItemDelegate, QPushButton, QStyle
 
 
 class ButtonDelegate(QItemDelegate):
-    ICONS = {0: QStyle.SP_TrashIcon,
-             1: QStyle.SP_DialogApplyButton}
+    ICONS = {1: QStyle.SP_TrashIcon,
+             2: QStyle.SP_DialogApplyButton}
     pressed = pyqtSignal(int)
 
     def __init__(self, parent, operation):
