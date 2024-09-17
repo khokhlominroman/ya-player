@@ -427,7 +427,7 @@ class MainWindow(QMainWindow):
         self.btPrevious.pressed.connect(qmplist.previous)
         self.btNext.pressed.connect(qmplist.next)
 
-    def on_about(self):
+    def on_about(self, _) -> None:
         dlg = QDialog(self, Qt.WindowType.Dialog)
         uic.loadUi(path.join(getcwd(), 'ui/about.ui'), dlg)
         dlg.exec_()
