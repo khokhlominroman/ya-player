@@ -443,12 +443,12 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,0,0,0,0,0,0,0,0,0">
+     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,0,0,0,0,0,0,0,0,0,0">
       <property name="spacing">
        <number>2</number>
       </property>
       <item>
-       <widget class="QPushButton" name="previousButton">
+       <widget class="QPushButton" name="btPrevious">
         <property name="text">
          <string/>
         </property>
@@ -462,7 +462,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="playButton">
+       <widget class="QPushButton" name="btPlay">
         <property name="text">
          <string/>
         </property>
@@ -476,7 +476,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pauseButton">
+       <widget class="QPushButton" name="btPause">
         <property name="text">
          <string/>
         </property>
@@ -490,7 +490,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="stopButton">
+       <widget class="QPushButton" name="btStop">
         <property name="text">
          <string/>
         </property>
@@ -504,9 +504,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="nextButton">
+       <widget class="QPushButton" name="btNext">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -574,6 +574,20 @@
         </property>
         <property name="wordWrap">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btLike">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>images/like.png</normaloff>images/like.png</iconset>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -687,11 +701,11 @@
   <tabstop>tabWidget</tabstop>
   <tabstop>lvPlaylists</tabstop>
   <tabstop>tvTracks</tabstop>
-  <tabstop>previousButton</tabstop>
-  <tabstop>playButton</tabstop>
-  <tabstop>pauseButton</tabstop>
-  <tabstop>stopButton</tabstop>
-  <tabstop>nextButton</tabstop>
+  <tabstop>btPrevious</tabstop>
+  <tabstop>btPlay</tabstop>
+  <tabstop>btPause</tabstop>
+  <tabstop>btStop</tabstop>
+  <tabstop>btNext</tabstop>
   <tabstop>volumeSlider</tabstop>
   <tabstop>timeSlider</tabstop>
  </tabstops>

@@ -6,7 +6,7 @@ from yandex_music.track_short import TrackShort
 
 
 class YaClient:
-    __slots__ = ('clt', 'likes', 'playlists')
+    __slots__ = ('clt', 'likes', 'playlist', 'similar')
 
     CODEC = 'mp3' # mp3, aac
     CACHE_DIR = f'{os.getcwd()}/.cache'
@@ -16,7 +16,8 @@ class YaClient:
     def __init__(self, token):
         self.clt = Client(token).init()
         self.likes: list[Track] = []
-        self.playlists: list[Track] = []
+        self.playlist: list[Track] = []
+        self.similar: list[Track] = []
 
         os.makedirs(YaClient.TRACKS_DIR, exist_ok=True)
 
@@ -30,25 +31,21 @@ class YaClient:
 
     def download_track(self, track: Track) -> None:
         _name = f'{", ".join(track.artists_name())} - {track.title}'
-        _fname = f'{YaClient.TRACKS_DIR}/{_name}.{YaClient.CODEC}'
-        if os.path.isfile(_fname):
-            return
-
-        print('Downloading track:', _name)
-        track.download(_fname, *self.__get_codec(track))
-
         _fname = f'{YaClient.COVERS_DIR}/{_name}.png'
-        if os.path.isfile(_fname):
-            return
+        if not os.path.isfile(_fname):
+            track.download_og_image(_fname)
 
-        track.download_og_image(_fname)
+        _fname = f'{YaClient.TRACKS_DIR}/{_name}.{YaClient.CODEC}'
+        if not os.path.isfile(_fname):
+            print('Downloading track:', _name)
+            track.download(_fname, *self.__get_codec(track))
 
-    def load_list(self, list_name: str, kind: int | str=None):
+    def load_list(self, list_name: str, kind: int | str=None) -> None:
         if list_name == 'likes':
             _list = self.likes
             _tracks = self.clt.users_likes_tracks().fetch_tracks()
         else:
-            _list = self.playlists
+            _list = self.playlist
             _tracks = self.clt.users_playlists(kind).tracks
 
         _list.clear()
@@ -61,11 +58,16 @@ class YaClient:
         with open(f'{YaClient.CACHE_DIR}/tracks_{list_name.replace(" ", "_")}.json', 'w') as fh:
             dump([f'{_t.artists_name()} - {_t.title}' for _t in _list], fh)
 
-    def like_track(self, idx: int) -> bool:
-        return self.clt.users_likes_tracks_add(self.playlists[idx].id)
+    def load_similar(self, track_id: int | str) -> bool:
+        self.similar.clear()
+        res = self.clt.tracks_similar(track_id)
+        if len(res.similar_tracks) > 0:
+            self.similar = res.similar_tracks
+
+        return len(self.similar) != 0
 
     @staticmethod
-    def clear_cache():
+    def clear_cache() -> None:
         print(os.listdir(YaClient.TRACKS_DIR))
         for fn in glob(YaClient.TRACKS_DIR):
             os.remove(fn)

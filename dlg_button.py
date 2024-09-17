@@ -5,20 +5,21 @@ from PyQt5.QtWidgets import QItemDelegate, QPushButton, QStyle
 
 class ButtonDelegate(QItemDelegate):
     ICONS = {1: QStyle.SP_TrashIcon,
-             2: QStyle.SP_DialogApplyButton}
+             2: QStyle.SP_FileDialogListView,
+             3: QStyle.SP_DialogApplyButton}
     pressed = pyqtSignal(int)
 
-    def __init__(self, parent, operation):
+    def __init__(self, parent, tooltip: str) -> None:
         super().__init__(parent)
-        self.operation = operation
+        self.tooltip = tooltip
         self.pnt_view = parent
 
     def createEditor(self, parent, option, index: QModelIndex) -> QPushButton:
         bt = QPushButton(parent)
         bt.setIcon(self.pnt_view.style().standardIcon(ButtonDelegate.ICONS[index.column()]))
-        bt.setToolTip(self.operation)
+        bt.setToolTip(self.tooltip)
         bt.clicked.connect(lambda checked, row=index.row(): self.pressed.emit(row))
         return bt
 
-    def updateEditorGeometry(self, editor, option, index, **kwargs):
+    def updateEditorGeometry(self, editor, option, index, **kwargs) -> None:
         editor.setGeometry(option.rect)

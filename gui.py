@@ -3,7 +3,7 @@ from os import getcwd, path, remove as os_rm
 from PyQt5 import uic
 from PyQt5.QtCore import QItemSelection, QModelIndex, QPoint, Qt, QUrl, QSize
 from PyQt5.QtGui import QCloseEvent, QPixmap
-from PyQt5.QtWidgets import QHeaderView, QMainWindow, QDialog, QFileDialog, QLabel, QMessageBox as Qmb, QToolTip
+from PyQt5.QtWidgets import QHeaderView, QMainWindow, QDialog, QLabel, QMessageBox as Qmb
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
 from yandex_music.exceptions import NetworkError
 from yandex_music.track_short import TrackShort
@@ -42,40 +42,47 @@ class MainWindow(QMainWindow):
         self.player.error.connect(lambda err: Qmb.critical(self, 'Error', str(err)))
         self.player.durationChanged.connect(self.update_duration)
         self.player.positionChanged.connect(self.update_position)
-        self.playButton.pressed.connect(self.player.play)
-        self.pauseButton.pressed.connect(self.player.pause)
-        self.stopButton.pressed.connect(self.player.stop)
+        self.btPlay.pressed.connect(self.player.play)
+        self.btPause.pressed.connect(self.player.pause)
+        self.btStop.pressed.connect(self.player.stop)
         self.volumeSlider.valueChanged.connect(self.player.setVolume)
         self.qmplTracks = QMediaPlaylist()
         self.qmplLikes = QMediaPlaylist()
+        self.qmplSimilar = QMediaPlaylist()
         self.player.setPlaylist(self.qmplTracks)
 
         # Models
         self.model_playlists = PlaylistsModel()
-        self.model_tracks = TracksModel(self.qmplTracks, 3)
-        self.model_likes = TracksModel(self.qmplLikes, 2)
+        self.model_tracks = TracksModel(self.qmplTracks, 4)
+        self.model_likes = TracksModel(self.qmplLikes, 3)
         self.lvPlaylists.setModel(self.model_playlists)
         self.tvTracks.setModel(self.model_tracks)
         self.tvLikes.setModel(self.model_likes)
 
-        # Signals
+    #     # Signals
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
-        self.previousButton.pressed.connect(self.qmplTracks.previous)
-        self.nextButton.pressed.connect(self.qmplTracks.next)
+        self.btLike.pressed.connect(self._like_track)
+        self.btPrevious.pressed.connect(self.qmplTracks.previous)
+        self.btNext.pressed.connect(self.qmplTracks.next)
         self.qmplTracks.currentIndexChanged.connect(self.on_track_selected_qmpl)
         self.qmplLikes.currentIndexChanged.connect(self.on_track_selected_qmpl)
+        self.qmplSimilar.currentIndexChanged.connect(self.on_track_similar_changed)
         self.lvPlaylists.selectionModel().selectionChanged.connect(self.on_playlist_selected)
         self.tvTracks.selectionModel().selectionChanged.connect(self.on_track_selected)
         self.tvLikes.selectionModel().selectionChanged.connect(self.on_track_selected)
         self.tvTracks.doubleClicked.connect(self.on_track_double_clicked)
         self.tvLikes.doubleClicked.connect(self.on_track_double_clicked)
         self.timeSlider.valueChanged.connect(self.player.setPosition)
-        self.dlg_tracks_del = ButtonDelegate(self.tvTracks, 'del')
-        self.dlg_tracks_like = ButtonDelegate(self.tvTracks, 'like')
-        self.dlg_likes_del = ButtonDelegate(self.tvLikes, 'del')
+        self.dlg_tracks_del = ButtonDelegate(self.tvTracks, 'Удалить')
+        self.dlg_tracks_similar = ButtonDelegate(self.tvTracks, 'Волна по треку')
+        self.dlg_tracks_like = ButtonDelegate(self.tvTracks, 'Добавить в коллекцию')
+        self.dlg_likes_del = ButtonDelegate(self.tvLikes, 'Удалить')
+        self.dlg_likes_similar = ButtonDelegate(self.tvLikes, 'Волна по треку')
         self.dlg_tracks_del.pressed.connect(self._delete_track)
+        self.dlg_tracks_similar.pressed.connect(self._similar)
         self.dlg_tracks_like.pressed.connect(self._like_track)
         self.dlg_likes_del.pressed.connect(self._delete_track)
+        self.dlg_likes_similar.pressed.connect(self._similar)
         self.actUpdateLikes.triggered.connect(self.__update_likes)
         self.actAbout.triggered.connect(self.on_about)
         self.actLogout.triggered.connect(self.__logout)
@@ -87,11 +94,14 @@ class MainWindow(QMainWindow):
         for tv in (self.tvTracks, self.tvLikes):
             tv.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
             tv.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            tv.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
 
-        self.tvTracks.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.tvTracks.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.tvTracks.setItemDelegateForColumn(1, self.dlg_tracks_del)
-        self.tvTracks.setItemDelegateForColumn(2, self.dlg_tracks_like)
+        self.tvTracks.setItemDelegateForColumn(2, self.dlg_tracks_similar)
+        self.tvTracks.setItemDelegateForColumn(3, self.dlg_tracks_like)
         self.tvLikes.setItemDelegateForColumn(1, self.dlg_likes_del)
+        self.tvLikes.setItemDelegateForColumn(2, self.dlg_likes_similar)
 
         mbar = self.menuBar()
         self.lbUser = QLabel(mbar)
@@ -109,24 +119,8 @@ class MainWindow(QMainWindow):
 
         self.setAcceptDrops(True)
 
-    def dragEnterEvent(self, e) -> None:
-        if e.mimeData().hasUrls():
-            e.acceptProposedAction()
-
-    def dropEvent(self, e) -> None:
-        for url in e.mimeData().urls():
-            self.qmplLikes.addMedia(QMediaContent(url))
-
-        self.model.layoutChanged.emit()
-
-        # If not playing, seeking to first of newly added + play.
-        if self.player.state() != QMediaPlayer.PlayingState:
-            i = self.qmplLikes.mediaCount() - len(e.mimeData().urls())
-            self.qmplLikes.setCurrentIndex(i)
-            self.player.play()
-
     def closeEvent(self, event: QCloseEvent) -> None:
-        if self.__yac.clt.token:
+        if self.__yac is not None and self.__yac.clt.token:
             sz = self.size()
             pos = self.pos()
             settings = {'TOKEN': self.__yac.clt.token, 'size': (sz.width(), sz.height()),
@@ -135,12 +129,6 @@ class MainWindow(QMainWindow):
                 dump(settings, fh)
 
         event.accept()
-
-    def open_file(self) -> None:
-        _path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "MP3 (*.mp3);AAC (*.aac);All files (*.*)")
-        if _path:
-            self.qmplLikes.addMedia(QMediaContent(QUrl.fromLocalFile(_path)))
-            self.model_tracks.layoutChanged.emit()
 
     def login(self) -> None:
         _token = None
@@ -160,6 +148,9 @@ class MainWindow(QMainWindow):
             return
 
         self.is_logged = self.__yac.clt.me is not None
+        if not self.is_logged:
+            return
+
         self.actLogout.setText("Выйти из аккаунта")
         self.lbUser.setText(f'{self.__yac.clt.me.account.full_name} | {self.__yac.clt.me.default_email} ')
 
@@ -179,25 +170,56 @@ class MainWindow(QMainWindow):
             self.__yac = None
             self.is_logged = False
         else:
-            # QMessageBox.critical(
-            #     self, "Update Error", "You are not logged in", defaultButton=QMessageBox.Ok)
-            self.__login()
+            Qmb.critical(self, _APP_TITLE, 'You are not logged in')
 
-    def _like_track(self, row: int):
+    def _like_track(self, row: int=None):
         if self.__yac is None:
             Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
             return
 
+        if row is None:
+            _pl = self.__yac.playlist if self.player.playlist() is self.qmplTracks else self.__yac.similar
+            _tr = _pl[self.player.playlist().currentIndex()]
+        else:
+            _tr = self.__yac.playlist[row]
+
         try:
-            _tr = self.__yac.playlists[row]
             if _tr.like():
-                QToolTip.showText(self.tvTracks.mapToGlobal(QPoint(0, 0)), f'Track `{_tr.title}` liked')
+                self.lbst.setText(f'Track `{_tr.title}` liked')
             else:
-                Qmb.warning(self, _APP_TITLE, f'Warning:\ncan\'t set like for track')
+                Qmb.warning(self, _APP_TITLE, f'Не получается поставить лайк')
         except NetworkError as e:
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
 
         self.__update_likes()
+
+    def _similar(self, row: int) -> None:
+        if self.currtab_idx == 0:
+            _tid = self.__yac.playlist[row].id
+        elif self.currtab_idx == 1:
+            _tid = self.__yac.likes[row].id
+        else:
+            return
+
+        try:
+            if self.__yac.load_similar(_tid):
+                self.qmplSimilar.clear()
+                for _tr in self.__yac.similar:
+                    self.qmplSimilar.addMedia(QMediaContent(
+                        QUrl(f'file://{YaClient.TRACKS_DIR}/{", ".join(_tr.artists_name())} - '
+                             f'{_tr.title}.{YaClient.CODEC}')))
+
+                self.player.setPlaylist(self.qmplSimilar)
+                self.btPrevious.pressed.disconnect()
+                self.btNext.pressed.disconnect()
+                self.btPrevious.pressed.connect(self.qmplSimilar.previous)
+                self.btNext.pressed.connect(self.qmplSimilar.next)
+                self.qmplSimilar.setCurrentIndex(0)
+                self.player.play()
+            else:
+                Qmb.information(self, _APP_TITLE, 'Похожие треки не найдены')
+        except NetworkError as e:
+            Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
 
     def _delete_track(self, row: int) -> None:
         if self.__yac is None:
@@ -208,8 +230,8 @@ class MainWindow(QMainWindow):
 
         if self.currtab_idx == 0:
             _pl = self.model_playlists._rows[self.lvPlaylists.currentIndex().row()]
-            _list = self.__yac.playlists
-            track = self.__yac.playlists[row]
+            _list = self.__yac.playlist
+            track = self.__yac.playlist[row]
             try:
                 _updated = self.__yac.clt.users_playlists_delete_track(_pl[1], row, row, _pl[2])
                 _list.clear()
@@ -290,7 +312,7 @@ class MainWindow(QMainWindow):
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
 
-        self.__update_media(self.model_tracks, self.qmplTracks, self.__yac.playlists)
+        self.__update_media(self.model_tracks, self.qmplTracks, self.__yac.playlist)
         self.lbst.setText(f'{_pl[0]} updated')
 
     def on_track_selected(self, curr: QItemSelection, prev: QItemSelection) -> None:
@@ -305,7 +327,7 @@ class MainWindow(QMainWindow):
             model = self.model_tracks
             cover = self.lbTrackCover
             title = self.lbTrackTitle
-            track = self.__yac.playlists[row]
+            track = self.__yac.playlist[row]
         elif self.currtab_idx == 1:
             view = self.tvLikes
             model = self.model_likes
@@ -322,14 +344,16 @@ class MainWindow(QMainWindow):
         duration = f'{track.duration_ms//60000}:{track.duration_ms%60000//1000:02d}'
         title.setText(f'<b>{artists}</b><br><br>{track.title} [<b>{duration}</b>]<br><br><b>Альлбом</b><br>{album}')
         view.openPersistentEditor(model.index(row, 1))
-        if model.col_cnt == 3:
-            view.openPersistentEditor(model.index(row, 2))
+        view.openPersistentEditor(model.index(row, 2))
+        if model.col_cnt == 4:
+            view.openPersistentEditor(model.index(row, 3))
 
         if not prev.isEmpty():
             row = prev.indexes()[0].row()
             view.closePersistentEditor(model.index(row, 1))
-            if model.col_cnt == 3:
-                view.closePersistentEditor(model.index(row, 2))
+            view.closePersistentEditor(model.index(row, 2))
+            if model.col_cnt == 4:
+                view.closePersistentEditor(model.index(row, 3))
 
     def on_track_double_clicked(self, idx: QModelIndex) -> None:
         if not idx.isValid():
@@ -353,7 +377,7 @@ class MainWindow(QMainWindow):
             return
 
         if self.currtab_idx == 0:
-            track = self.__yac.playlists[idx]
+            track = self.__yac.playlist[idx]
             view = self.tvTracks
             model = self.model_tracks
         elif self.currtab_idx == 1:
@@ -374,6 +398,18 @@ class MainWindow(QMainWindow):
         self.lbCurrTitle.setText(track_name)
         view.setCurrentIndex(model.index(idx, 2))
 
+    def on_track_similar_changed(self, idx: int) -> None:
+        track = self.__yac.similar[idx]
+        try:
+            self.__yac.download_track(track)
+        except NetworkError as e:
+            Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
+            return
+
+        track_name = f'{", ".join(track.artists_name())} - {track.title}'.replace('/', '\\')
+        self.lbCurrCover.setPixmap(QPixmap(f'{YaClient.COVERS_DIR}/{track_name}.png'))
+        self.lbCurrTitle.setText(track_name)
+
     def on_tab_changed(self, ix: int) -> None:
         self.currtab_idx = ix
         if ix == 0:
@@ -386,10 +422,10 @@ class MainWindow(QMainWindow):
             return
 
         self.player.setPlaylist(qmplist)
-        self.previousButton.pressed.disconnect()
-        self.nextButton.pressed.disconnect()
-        self.previousButton.pressed.connect(qmplist.previous)
-        self.nextButton.pressed.connect(qmplist.next)
+        self.btPrevious.pressed.disconnect()
+        self.btNext.pressed.disconnect()
+        self.btPrevious.pressed.connect(qmplist.previous)
+        self.btNext.pressed.connect(qmplist.next)
 
     def on_about(self):
         dlg = QDialog(self, Qt.WindowType.Dialog)
