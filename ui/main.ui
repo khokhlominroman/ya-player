@@ -443,7 +443,7 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,0,0,0,0,0,0,0,0,0,0">
+     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,0,0,0,0,0,0,0,0,0,0,0">
       <property name="spacing">
        <number>2</number>
       </property>
@@ -579,6 +579,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="btLike">
+        <property name="toolTip">
+         <string>Добавить в избранное</string>
+        </property>
         <property name="text">
          <string/>
         </property>
@@ -588,6 +591,26 @@
         </property>
         <property name="flat">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="btAddToList">
+        <property name="toolTip">
+         <string>Добавить в плей-лист</string>
+        </property>
+        <property name="text">
+         <string>Add to playlist</string>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>images/add.png</normaloff>images/add.png</iconset>
+        </property>
+        <property name="shortcut">
+         <string>Ctrl+A</string>
+        </property>
+        <property name="popupMode">
+         <enum>QToolButton::InstantPopup</enum>
         </property>
        </widget>
       </item>

@@ -48,15 +48,7 @@ class YaClient:
             _list = self.playlist
             _tracks = self.clt.users_playlists(kind).tracks
 
-        _list.clear()
-        for _tr in _tracks:
-            if isinstance(_tr, TrackShort):
-                _tr = _tr.track
-
-            _list.append(_tr)
-
-        with open(f'{YaClient.CACHE_DIR}/tracks_{list_name.replace(" ", "_")}.json', 'w') as fh:
-            dump([f'{_t.artists_name()} - {_t.title}' for _t in _list], fh)
+        self.update_playlist(list_name, _list, _tracks)
 
     def load_similar(self, track_id: int | str) -> bool:
         self.similar.clear()
@@ -65,6 +57,18 @@ class YaClient:
             self.similar = res.similar_tracks
 
         return len(self.similar) != 0
+
+    def update_playlist(self, list_name: str, plist: list[Track], tracks: list[Track | TrackShort]):
+        plist.clear()
+        for _tr in tracks:
+            if isinstance(_tr, TrackShort):
+                _tr = _tr.track
+
+            plist.append(_tr)
+
+        with open(f'{YaClient.CACHE_DIR}/tracks_{list_name.replace(" ", "_")}.json', 'w') as fh:
+            dump([f'{_t.artists_name()} - {_t.title}' for _t in plist], fh)
+
 
     @staticmethod
     def clear_cache() -> None:

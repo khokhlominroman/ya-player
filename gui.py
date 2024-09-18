@@ -3,7 +3,7 @@ from os import getcwd, path, remove as os_rm
 from PyQt5 import uic
 from PyQt5.QtCore import QItemSelection, QModelIndex, QPoint, Qt, QUrl, QSize
 from PyQt5.QtGui import QCloseEvent, QPixmap
-from PyQt5.QtWidgets import QHeaderView, QMainWindow, QDialog, QLabel, QMessageBox as Qmb
+from PyQt5.QtWidgets import QHeaderView, QMainWindow, QDialog, QLabel, QMessageBox as Qmb, QMenu, QAction, QToolButton, QListView
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
 from yandex_music.exceptions import NetworkError
 from yandex_music.track_short import TrackShort
@@ -229,20 +229,30 @@ class MainWindow(QMainWindow):
             return
 
         if self.currtab_idx == 0:
-            _pl = self.model_playlists._rows[self.lvPlaylists.currentIndex().row()]
+            sel = self.lvPlaylists.selectionModel().selection()
+            pl_row = sel.indexes()[0].row()
+            _pl = self.model_playlists._rows[pl_row]
             _list = self.__yac.playlist
             track = self.__yac.playlist[row]
             try:
-                _updated = self.__yac.clt.users_playlists_delete_track(_pl[1], row, row, _pl[2])
-                _list.clear()
-                for _tr in _updated.tracks:
-                    if isinstance(_tr, TrackShort):
-                        _tr = _tr.track
+                _updated = self.__yac.clt.users_playlists_delete_track(_pl[1], row, row+1, _pl[2])
+                if _updated is None:
+                    return
 
-                    _list.append(_tr)
+                self.model_playlists._rows[pl_row] = (_pl[0], _pl[1], _updated.revision)
+                if len(_updated.tracks) > 0:
+                    _list.clear()
+                    for _tr in _updated.tracks:
+                        if isinstance(_tr, TrackShort):
+                            _tr = _tr.track
+
+                        _list.append(_tr)
+                else:
+                    self.on_playlist_selected(sel)
             except NetworkError as e:
                 Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
                 return
+
         elif self.currtab_idx == 1:
             track = self.__yac.likes[row]
             if self.__yac.clt.users_likes_tracks_remove(track.id):
@@ -263,6 +273,14 @@ class MainWindow(QMainWindow):
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
 
+        add_menu = QMenu(self.btAddToList)
+        for _i, _pl in enumerate(self.model_playlists._rows):
+            act = QAction(_pl[0], self)
+            act.triggered.connect(lambda checked, pl_idx=_i: self.__add_to_list(pl_idx))
+            add_menu.addAction(act)
+
+        self.btAddToList.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.btAddToList.setMenu(add_menu)
         self.lbst.setText('Playlists updated')
 
     def __update_likes(self) -> None:
@@ -290,6 +308,38 @@ class MainWindow(QMainWindow):
 
         model.layoutChanged.emit()
 
+    def __add_to_list(self, pl_idx: int) -> None:
+        curr_pl = self.player.playlist()
+        idx = curr_pl.currentIndex()
+        if idx == -1:
+            return
+
+        plist = self.model_playlists._rows[pl_idx]
+        if curr_pl is self.qmplTracks:
+            track_list = self.__yac.playlist
+            curr_pl_name = self.model_playlists.data(self.lvPlaylists.currentIndex(), 0)
+            if curr_pl_name == plist[0]:
+                return
+        elif curr_pl is self.qmplSimilar:
+            track_list = self.__yac.similar
+        elif curr_pl is self.qmplLikes:
+            track_list = self.__yac.likes
+        else:
+            return
+
+        track = track_list[idx]
+        try:
+            new_pl = self.__yac.clt.users_playlists_insert_track(plist[1], track.id, track.albums[0].id,
+                                                                 revision=plist[2])
+        except NetworkError as e:
+            Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
+            return
+
+        if new_pl is not None:
+            self.model_playlists._rows[pl_idx] = (plist[0], plist[1], new_pl.revision)
+
+        self.lbst.setText(f'`{track.title}` added to `{plist[0]}`')
+
     def update_duration(self, duration: int) -> None:
         self.timeSlider.setMaximum(duration)
         if duration >= 0:
@@ -304,8 +354,8 @@ class MainWindow(QMainWindow):
         self.timeSlider.setValue(position)
         self.timeSlider.blockSignals(False)
 
-    def on_playlist_selected(self, idx: QModelIndex, _) -> None:
-        _pl = self.model_playlists._rows[idx.indexes()[0].row()]
+    def on_playlist_selected(self, sel: QItemSelection, _=None) -> None:
+        _pl = self.model_playlists._rows[sel.indexes()[0].row()]
         try:
             self.__yac.load_list(_pl[0], _pl[1])
         except NetworkError as e:
