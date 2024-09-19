@@ -46,8 +46,8 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         # Player
         self.player = QMediaPlayer(self)
         self.player.error.connect(lambda err: Qmb.critical(self, 'Error', str(err)))
-        self.player.durationChanged.connect(self.update_duration)
-        self.player.positionChanged.connect(self.update_position)
+        self.player.durationChanged.connect(self._update_duration)
+        self.player.positionChanged.connect(self._update_position)
         self.bt_play.pressed.connect(self.player.play)
         self.bt_pause.pressed.connect(self.player.pause)
         self.bt_stop.pressed.connect(self.player.stop)
@@ -65,11 +65,11 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         self.tv_tracks.setModel(self.model_tracks)
         self.tv_likes.setModel(self.model_likes)
 
-        self.connect_signals()
-        self.setup_ui()
+        self._connect_signals()
+        self._setup_ui()
         self.act_logout.setText("Login")
 
-    def connect_signals(self):
+    def _connect_signals(self):
         """
         Connect widgets' signals with slots.
         :return:
@@ -97,11 +97,11 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         self.dlg_tracks_like.pressed.connect(self._like_track)
         self.dlg_likes_del.pressed.connect(self._delete_track)
         self.dlg_likes_similar.pressed.connect(self._similar)
-        self.act_update_likes.triggered.connect(self.__update_likes)
+        self.act_update_likes.triggered.connect(self._update_likes)
         self.act_about.triggered.connect(self.on_about)
-        self.act_logout.triggered.connect(self.__logout)
+        self.act_logout.triggered.connect(self._logout)
 
-    def setup_ui(self) -> None:
+    def _setup_ui(self) -> None:
         """
         Table views and labels initialisatrion.
         :return:
@@ -179,10 +179,10 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         self.act_logout.setText("Выйти из аккаунта")
         self.lb_user.setText(f'{self.__yac.clt.me.account.full_name} | {self.__yac.clt.me.default_email} ')
 
-        self.__update_playlists()
-        self.__update_likes()
+        self._update_playlists()
+        self._update_likes()
 
-    def __logout(self) -> None:
+    def _logout(self) -> None:
         """
         Removes the token, clears file cache and removes the YaClient instance.
         :return:
@@ -220,7 +220,7 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         except NetworkError as e:
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
 
-        self.__update_likes()
+        self._update_likes()
 
     def _similar(self, row: int) -> None:
         if self.currtab_idx == 0:
@@ -285,13 +285,13 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         elif self.currtab_idx == 1:
             track = self.__yac.likes[row]
             if self.__yac.clt.users_likes_tracks_remove(track.id):
-                self.__update_likes()
+                self._update_likes()
         else:
             return
 
         self.lbst.setText(f'Track `{track.title}` removed')
 
-    def __update_playlists(self) -> None:
+    def _update_playlists(self) -> None:
         if self.__yac is None:
             Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
             return
@@ -305,14 +305,14 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         add_menu = QMenu(self.bt_add_to_list)
         for _i, _pl in enumerate(self.model_playlists.rows):
             act = QAction(_pl[0], self)
-            act.triggered.connect(lambda checked, pl_idx=_i: self.__add_to_list(pl_idx))
+            act.triggered.connect(lambda checked, pl_idx=_i: self._add_to_list(pl_idx))
             add_menu.addAction(act)
 
         self.bt_add_to_list.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.bt_add_to_list.setMenu(add_menu)
         self.lbst.setText('Playlists updated')
 
-    def __update_likes(self) -> None:
+    def _update_likes(self) -> None:
         if not self.is_logged:
             Qmb.critical(self, "Update Error", "You are not logged in", defaultButton=Qmb.Ok)
             return
@@ -323,10 +323,10 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
 
-        self.__update_media(self.model_likes, self.qmpl_likes, self.__yac.likes)
+        self._update_media(self.model_likes, self.qmpl_likes, self.__yac.likes)
         self.lbst.setText('Likes updated')
 
-    def __update_media(self, model: TracksModel, playlist: QMediaPlaylist, tracks: list[Track]) -> None:
+    def _update_media(self, model: TracksModel, playlist: QMediaPlaylist, tracks: list[Track]) -> None:
         if not self.is_logged:
             return
 
@@ -337,7 +337,7 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
 
         model.layoutChanged.emit()
 
-    def __add_to_list(self, pl_idx: int) -> None:
+    def _add_to_list(self, pl_idx: int) -> None:
         curr_pl = self.player.playlist()
         idx = curr_pl.currentIndex()
         if idx == -1:
@@ -369,7 +369,7 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
 
         self.lbst.setText(f'`{track.title}` added to `{plist[0]}`')
 
-    def update_duration(self, duration: int) -> None:
+    def _update_duration(self, duration: int) -> None:
         """
         Update slider maximum and total time label.
         :param duration:
@@ -379,7 +379,7 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         if duration >= 0:
             self.lb_time_total.setText(f'{duration//60000}:{duration%60000//1000:02d}')
 
-    def update_position(self, position: int) -> None:
+    def _update_position(self, position: int) -> None:
         """
         Update time slider position.
         :param position:
@@ -407,7 +407,7 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
             Qmb.critical(self, _APP_TITLE, f'Error:\n{e}')
             return
 
-        self.__update_media(self.model_tracks, self.qmpl_tracks, self.__yac.playlist)
+        self._update_media(self.model_tracks, self.qmpl_tracks, self.__yac.playlist)
         self.lbst.setText(f'{_pl[0]} updated')
 
     def on_track_selected(self, curr: QItemSelection, prev: QItemSelection) -> None:
@@ -535,10 +535,10 @@ class YaPlayerWindow(QMainWindow):  # pylint: disable=too-many-instance-attribut
         self.currtab_idx = ix
         if ix == 0:
             qmplist = self.qmpl_tracks
-            self.__update_playlists()
+            self._update_playlists()
         elif ix == 1:
             qmplist = self.qmpl_likes
-            self.__update_likes()
+            self._update_likes()
         else:
             return
 
