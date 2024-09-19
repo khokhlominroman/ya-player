@@ -93,7 +93,7 @@
          <number>2</number>
         </property>
         <item row="0" column="0">
-         <widget class="QListView" name="lvPlaylists">
+         <widget class="QListView" name="lv_playlists">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -109,7 +109,7 @@
          </widget>
         </item>
         <item row="0" column="2">
-         <widget class="QLabel" name="lbTrackCover">
+         <widget class="QLabel" name="lb_track_cover">
           <property name="minimumSize">
            <size>
             <width>200</width>
@@ -134,7 +134,7 @@
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLabel" name="lbTrackTitle">
+         <widget class="QLabel" name="lb_track_title">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -165,7 +165,7 @@
          </widget>
         </item>
         <item row="1" column="0" colspan="3">
-         <widget class="QTableView" name="tvTracks">
+         <widget class="QTableView" name="tv_tracks">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -276,7 +276,7 @@
          <number>2</number>
         </property>
         <item row="0" column="0">
-         <widget class="QLabel" name="lbLikesTitle">
+         <widget class="QLabel" name="lb_likes_title">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -307,7 +307,7 @@
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLabel" name="lbLikesCover">
+         <widget class="QLabel" name="lb_likes_cover">
           <property name="minimumSize">
            <size>
             <width>200</width>
@@ -332,7 +332,7 @@
          </widget>
         </item>
         <item row="1" column="0" colspan="2">
-         <widget class="QTableView" name="tvLikes">
+         <widget class="QTableView" name="tv_likes">
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
@@ -390,7 +390,7 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="QLabel" name="currentTimeLabel">
+       <widget class="QLabel" name="lb_time_current">
         <property name="minimumSize">
          <size>
           <width>80</width>
@@ -409,7 +409,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QSlider" name="timeSlider">
+       <widget class="QSlider" name="sld_time">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -422,7 +422,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="totalTimeLabel">
+       <widget class="QLabel" name="lb_time_total">
         <property name="minimumSize">
          <size>
           <width>80</width>
@@ -448,7 +448,7 @@
        <number>2</number>
       </property>
       <item>
-       <widget class="QPushButton" name="btPrevious">
+       <widget class="QPushButton" name="bt_prev">
         <property name="text">
          <string/>
         </property>
@@ -462,7 +462,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="btPlay">
+       <widget class="QPushButton" name="bt_play">
         <property name="text">
          <string/>
         </property>
@@ -476,7 +476,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="btPause">
+       <widget class="QPushButton" name="bt_pause">
         <property name="text">
          <string/>
         </property>
@@ -490,7 +490,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="btStop">
+       <widget class="QPushButton" name="bt_stop">
         <property name="text">
          <string/>
         </property>
@@ -504,7 +504,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="btNext">
+       <widget class="QPushButton" name="bt_next">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -540,7 +540,7 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="lbCurrCover">
+       <widget class="QLabel" name="lb_curr_cover">
         <property name="maximumSize">
          <size>
           <width>48</width>
@@ -562,7 +562,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="lbCurrTitle">
+       <widget class="QLabel" name="lb_curr_title">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -578,7 +578,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="btLike">
+       <widget class="QPushButton" name="bt_like">
         <property name="toolTip">
          <string>Добавить в избранное</string>
         </property>
@@ -595,7 +595,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="btAddToList">
+       <widget class="QToolButton" name="bt_add_to_list">
         <property name="toolTip">
          <string>Добавить в плей-лист</string>
         </property>
@@ -631,7 +631,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QSlider" name="volumeSlider">
+       <widget class="QSlider" name="sld_vol">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -675,15 +675,15 @@
     <property name="title">
      <string>Аккаунт</string>
     </property>
-    <addaction name="actUpdateLikes"/>
-    <addaction name="actLogout"/>
+    <addaction name="act_update_likes"/>
+    <addaction name="act_logout"/>
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
      <string>Помощь</string>
     </property>
-    <addaction name="actToken"/>
-    <addaction name="actAbout"/>
+    <addaction name="act_token"/>
+    <addaction name="act_about"/>
    </widget>
    <addaction name="menuFIle"/>
    <addaction name="menu"/>
@@ -694,22 +694,22 @@
     <string>Open file...</string>
    </property>
   </action>
-  <action name="actUpdateLikes">
+  <action name="act_update_likes">
    <property name="text">
     <string>Обновить списки</string>
    </property>
   </action>
-  <action name="actLogout">
+  <action name="act_logout">
    <property name="text">
     <string>Выйти из аккаунта</string>
    </property>
   </action>
-  <action name="actToken">
+  <action name="act_token">
    <property name="text">
     <string>Получение токена</string>
    </property>
   </action>
-  <action name="actAbout">
+  <action name="act_about">
    <property name="icon">
     <iconset>
      <normaloff>images/track.png</normaloff>images/track.png</iconset>
@@ -722,15 +722,15 @@
  <layoutdefault spacing="6" margin="11"/>
  <tabstops>
   <tabstop>tabWidget</tabstop>
-  <tabstop>lvPlaylists</tabstop>
-  <tabstop>tvTracks</tabstop>
-  <tabstop>btPrevious</tabstop>
-  <tabstop>btPlay</tabstop>
-  <tabstop>btPause</tabstop>
-  <tabstop>btStop</tabstop>
-  <tabstop>btNext</tabstop>
-  <tabstop>volumeSlider</tabstop>
-  <tabstop>timeSlider</tabstop>
+  <tabstop>lv_playlists</tabstop>
+  <tabstop>tv_tracks</tabstop>
+  <tabstop>bt_prev</tabstop>
+  <tabstop>bt_play</tabstop>
+  <tabstop>bt_pause</tabstop>
+  <tabstop>bt_stop</tabstop>
+  <tabstop>bt_next</tabstop>
+  <tabstop>sld_vol</tabstop>
+  <tabstop>sld_time</tabstop>
  </tabstops>
  <resources/>
  <connections/>

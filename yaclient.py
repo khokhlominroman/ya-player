@@ -1,3 +1,6 @@
+"""
+Yandex music client wrapper.
+"""
 import os
 from json import dump
 from glob import glob
@@ -6,6 +9,9 @@ from yandex_music.track_short import TrackShort
 
 
 class YaClient:
+    """
+    Yandex music client some methods wrapper.
+    """
     __slots__ = ('clt', 'likes', 'playlist', 'similar')
 
     CODEC = 'mp3' # mp3, aac
@@ -30,6 +36,11 @@ class YaClient:
                    key=lambda x: x[1], default=('mp3', 192))
 
     def download_track(self, track: Track) -> None:
+        """
+        Download the track file to cache directory.
+        :param track:
+        :return:
+        """
         _name = f'{", ".join(track.artists_name())} - {track.title}'
         _fname = f'{YaClient.COVERS_DIR}/{_name}.png'
         if not os.path.isfile(_fname):
@@ -41,6 +52,12 @@ class YaClient:
             track.download(_fname, *self.__get_codec(track))
 
     def load_list(self, list_name: str, kind: int | str=None) -> None:
+        """
+        Load track list for the given playlist and update the playlist.
+        :param list_name:
+        :param kind:
+        :return:
+        """
         if list_name == 'likes':
             _list = self.likes
             _tracks = self.clt.users_likes_tracks().fetch_tracks()
@@ -48,9 +65,14 @@ class YaClient:
             _list = self.playlist
             _tracks = self.clt.users_playlists(kind).tracks
 
-        self.update_playlist(list_name, _list, _tracks)
+        YaClient.update_playlist(list_name, _list, _tracks)
 
     def load_similar(self, track_id: int | str) -> bool:
+        """
+        Get the similar tracks for given track.
+        :param track_id:
+        :return:
+        """
         self.similar.clear()
         res = self.clt.tracks_similar(track_id)
         if len(res.similar_tracks) > 0:
@@ -58,7 +80,15 @@ class YaClient:
 
         return len(self.similar) != 0
 
-    def update_playlist(self, list_name: str, plist: list[Track], tracks: list[Track | TrackShort]):
+    @staticmethod
+    def update_playlist(list_name: str, plist: list[Track], tracks: list[Track | TrackShort]):
+        """
+        Update the playlist tracks and save it to cache file.
+        :param list_name:
+        :param plist:
+        :param tracks:
+        :return:
+        """
         plist.clear()
         for _tr in tracks:
             if isinstance(_tr, TrackShort):
@@ -66,13 +96,15 @@ class YaClient:
 
             plist.append(_tr)
 
-        with open(f'{YaClient.CACHE_DIR}/tracks_{list_name.replace(" ", "_")}.json', 'w') as fh:
+        with open(f'{YaClient.CACHE_DIR}/tracks_{list_name.replace(" ", "_")}.json', 'w', encoding='utf-8') as fh:
             dump([f'{_t.artists_name()} - {_t.title}' for _t in plist], fh)
-
 
     @staticmethod
     def clear_cache() -> None:
-        print(os.listdir(YaClient.TRACKS_DIR))
+        """
+        Remove all file from cache directories.
+        :return:
+        """
         for fn in glob(YaClient.TRACKS_DIR):
             os.remove(fn)
 

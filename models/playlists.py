@@ -1,24 +1,48 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtCore import QAbstractListModel, Qt
+"""
+Model for the list of playlists.
+"""
+from PyQt5.QtCore import QAbstractListModel, Qt, QModelIndex
+from PyQt5.QtWidgets import QWidget
 from yandex_music import Playlist
 
 
 class PlaylistsModel(QAbstractListModel):
-    def __init__(self, parent=None) -> None:
+    """
+    Model implementation for the list of playlists.
+    """
+    def __init__(self, parent: QWidget=None) -> None:
         super().__init__(parent)
-        self._rows: list[tuple[str, str, int]] = []
+        self.rows: list[tuple[str, str, int]] = []
 
-    def data(self, index, role=None):
+    def data(self, index: QModelIndex, role: int=None):
+        """
+        Get the data for given index and role.
+        :param index:
+        :param role:
+        :return:
+        """
         if role == Qt.DisplayRole:
-            return self._rows[index.row()][0]
+            return self.rows[index.row()][0]
 
-    def rowCount(self, index=None, *args, **kwargs) -> int:
-        return len(self._rows)
+        return None
+
+    def rowCount(self, _: QModelIndex=None) -> int: # pylint: disable=invalid-name
+        """
+        Get the number of rows.
+        :return:
+        """
+        return len(self.rows)
 
     def update_data(self, data: list[Playlist]) -> None:
-        self._rows.clear()
+        """
+        Fully update the underlying data.
+        :param data:
+        :return:
+        """
+        self.rows.clear()
         self.beginResetModel()
         for _pl in data:
-            self._rows.append((_pl.title, _pl.kind, _pl.revision))
+            self.rows.append((_pl.title, _pl.kind, _pl.revision))
 
         self.endResetModel()
